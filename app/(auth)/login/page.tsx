@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
+import { isAllowedTeacherEmail } from "@/lib/school-domains";
 import { showToast } from "@/components/ui/Toast";
 
 export default function LoginPage() {
@@ -15,13 +15,40 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!isAllowedTeacherEmail(email)) {
+      showToast(
+        "Gebruik uw Athena-schoolmail: @athena-clw.be of @athena-heule.be",
+        "error"
+      );
+      return;
+    }
+
     setLoading(true);
 
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password,
+    });
 
     if (error) {
-      showToast(error.message, "error");
+      showToast(
+        error.message === "Invalid login credentials"
+          ? "Onjuist e-mailadres of wachtwoord. Contacteer ICT als u nog geen account heeft."
+          : error.message,
+        "error"
+      );
+      setLoading(false);
+      return;
+    }
+
+    const syncRes = await fetch("/api/auth/sync", { method: "POST" });
+    const syncData = await syncRes.json();
+
+    if (!syncRes.ok) {
+      await supabase.auth.signOut();
+      showToast(syncData.error || "Toegang geweigerd.", "error");
       setLoading(false);
       return;
     }
@@ -55,6 +82,14 @@ export default function LoginPage() {
           onSubmit={handleLogin}
           className="bg-white p-6 md:p-8 rounded-3xl border border-slate-200 shadow-xs space-y-4"
         >
+          <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 text-[11px] text-slate-600 leading-relaxed">
+            Log in met uw <b>Athena-schoolmail</b>:
+            <br />
+            <span className="text-athenaBlue font-semibold">voornaam.naam@athena-clw.be</span>
+            <br />
+            <span className="text-athenaBlue font-semibold">voornaam.naam@athena-heule.be</span>
+          </div>
+
           <div>
             <label className="block text-xs font-semibold text-slate-500 mb-1">
               E-mailadres
@@ -64,8 +99,9 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              autoComplete="username"
               className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 text-sm text-slate-800 focus:border-athenaBlue focus:ring-1 focus:ring-athenaBlue outline-none"
-              placeholder="naam@school.be"
+              placeholder="voornaam.naam@athena-clw.be"
             />
           </div>
           <div>
@@ -77,6 +113,7 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              autoComplete="current-password"
               className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 text-sm text-slate-800 focus:border-athenaBlue focus:ring-1 focus:ring-athenaBlue outline-none"
               placeholder="••••••••"
             />
@@ -90,11 +127,8 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="text-center text-xs text-slate-500 mt-6">
-          Nog geen account?{" "}
-          <Link href="/signup" className="text-athenaBlue font-bold hover:underline">
-            Registreer uw school
-          </Link>
+        <p className="text-center text-xs text-slate-400 mt-6">
+          Geen account? Contacteer de ICT-coördinator van uw campus.
         </p>
       </div>
     </div>

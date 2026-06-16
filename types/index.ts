@@ -6,6 +6,7 @@ export interface School {
   id: string;
   name: string;
   plan: SchoolPlan;
+  email_domain?: string | null;
   stripe_customer_id: string | null;
   subscription_status: SubscriptionStatus;
   created_at: string;

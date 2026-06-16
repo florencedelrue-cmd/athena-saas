@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "check-env": "node scripts/check-env.mjs"
+    "check-env": "node scripts/check-env.mjs",
+    "provision-teacher": "node scripts/provision-teacher.mjs",
+    "seed-demo": "node scripts/seed-demo-teachers.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",
