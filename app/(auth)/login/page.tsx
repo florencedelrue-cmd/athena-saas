@@ -44,8 +44,11 @@ export default function LoginPage() {
           />
           <h1 className="text-xl font-bold text-slate-800">Welkom terug</h1>
           <p className="text-sm text-slate-500 mt-1">
-            Log in op uw Athena Duaal Leren account
+            Athena TOCI 2.0 — Gespreksfiche & Competentietracker
           </p>
+          <span className="inline-block mt-2 bg-athenaPink/10 text-athenaPink text-[10px] font-extrabold px-2 py-0.5 rounded-full">
+            Duaal Leren Platform
+          </span>
         </div>
 
         <form

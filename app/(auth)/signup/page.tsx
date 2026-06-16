@@ -81,7 +81,7 @@ export default function SignupPage() {
           />
           <h1 className="text-xl font-bold text-slate-800">Registreer uw school</h1>
           <p className="text-sm text-slate-500 mt-1">
-            Start met Athena Duaal Leren voor uw onderwijsinstelling
+            Start met Athena TOCI 2.0 — inclusief demo leerlingdossier
           </p>
         </div>
 

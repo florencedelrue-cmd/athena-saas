@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/server";
 import { createStripeCustomer } from "@/lib/stripe";
+import { seedDemoData } from "@/lib/demo-seed";
 
 export async function POST(request: Request) {
   try {
@@ -69,6 +70,12 @@ export async function POST(request: Request) {
         .eq("id", school.id);
     } catch (stripeErr) {
       console.error("Stripe customer creation failed:", stripeErr);
+    }
+
+    try {
+      await seedDemoData(supabase, school.id, userId);
+    } catch (seedErr) {
+      console.error("Demo seed failed:", seedErr);
     }
 
     return NextResponse.json({ success: true, schoolId: school.id });

@@ -93,7 +93,31 @@ export interface AuthSession {
   school: School;
 }
 
-export type MainTab = "gesprek" | "volgsysteem";
+export type MainTab = "gesprek" | "volgsysteem" | "planner";
+
+export interface LessonPreparation {
+  id: string;
+  school_id: string;
+  created_by: string | null;
+  title: string;
+  notes: string;
+  competencies: string[];
+  student_ids: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PlannerEvent {
+  id: string;
+  school_id: string;
+  event_date: string;
+  assignment_title: string;
+  assignment_notes: string;
+  lesson_preparation_id: string | null;
+  student_ids: string[];
+  created_at: string;
+  updated_at: string;
+}
 
 export interface CompetencyItem {
   id: string;
@@ -154,6 +178,24 @@ export interface Database {
         Row: Log;
         Insert: Omit<Log, "id"> & { id?: string };
         Update: Partial<Omit<Log, "id">>;
+      };
+      lesson_preparations: {
+        Row: LessonPreparation;
+        Insert: Omit<LessonPreparation, "id" | "created_at" | "updated_at"> & {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Omit<LessonPreparation, "id">>;
+      };
+      planner_events: {
+        Row: PlannerEvent;
+        Insert: Omit<PlannerEvent, "id" | "created_at" | "updated_at"> & {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Omit<PlannerEvent, "id">>;
       };
     };
   };

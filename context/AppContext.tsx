@@ -17,14 +17,25 @@ import {
   updateCompetencyInDb,
   updateStudentInDb,
 } from "@/lib/db";
+import {
+  createLessonPreparationInDb,
+  createPlannerEventInDb,
+  deleteLessonPreparationFromDb,
+  deletePlannerEventFromDb,
+  fetchPlannerDataForSchool,
+  updateLessonPreparationInDb,
+  updatePlannerEventInDb,
+} from "@/lib/db-planner";
 import type {
   AnalyseNotes,
   AppUser,
   AuthSession,
   CompetencyScore,
   DoorstroomNotes,
+  LessonPreparation,
   Log,
   MainTab,
+  PlannerEvent,
   School,
   ScreeningNotes,
   ScoreValue,
@@ -64,6 +75,43 @@ interface AppContextValue {
   getAnalyse: () => AnalyseNotes;
   getDoorstroom: () => DoorstroomNotes;
   getAssessmentsMap: () => Record<string, CompetencyScore>;
+  lessonPreparations: LessonPreparation[];
+  plannerEvents: PlannerEvent[];
+  fetchPlannerData: () => Promise<void>;
+  createLessonPreparation: (params: {
+    title: string;
+    notes?: string;
+    competencies: string[];
+    studentIds: string[];
+  }) => Promise<LessonPreparation>;
+  updateLessonPreparation: (
+    id: string,
+    params: {
+      title: string;
+      notes?: string;
+      competencies: string[];
+      studentIds: string[];
+    }
+  ) => Promise<void>;
+  deleteLessonPreparation: (id: string) => Promise<void>;
+  createPlannerEvent: (params: {
+    eventDate: string;
+    assignmentTitle: string;
+    assignmentNotes?: string;
+    lessonPreparationId?: string | null;
+    studentIds: string[];
+  }) => Promise<void>;
+  updatePlannerEvent: (
+    id: string,
+    params: {
+      eventDate: string;
+      assignmentTitle: string;
+      assignmentNotes?: string;
+      lessonPreparationId?: string | null;
+      studentIds: string[];
+    }
+  ) => Promise<void>;
+  deletePlannerEvent: (id: string) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -77,11 +125,23 @@ export function useApp() {
 interface AppProviderProps {
   session: AuthSession;
   initialStudents: StudentWithData[];
+  initialLessonPreparations?: LessonPreparation[];
+  initialPlannerEvents?: PlannerEvent[];
   children: React.ReactNode;
 }
 
-export function AppProvider({ session, initialStudents, children }: AppProviderProps) {
+export function AppProvider({
+  session,
+  initialStudents,
+  initialLessonPreparations = [],
+  initialPlannerEvents = [],
+  children,
+}: AppProviderProps) {
   const [students, setStudents] = useState<StudentWithData[]>(initialStudents);
+  const [lessonPreparations, setLessonPreparations] = useState<LessonPreparation[]>(
+    initialLessonPreparations
+  );
+  const [plannerEvents, setPlannerEvents] = useState<PlannerEvent[]>(initialPlannerEvents);
   const [activeStudentId, setActiveStudentId] = useState<string | null>(
     initialStudents[0]?.id ?? null
   );
@@ -130,15 +190,25 @@ export function AppProvider({ session, initialStudents, children }: AppProviderP
     }
   }, [session.school.id, activeStudentId]);
 
+  const fetchPlannerData = useCallback(async () => {
+    try {
+      const data = await fetchPlannerDataForSchool(session.school.id);
+      setLessonPreparations(data.lessonPreparations);
+      setPlannerEvents(data.plannerEvents);
+    } catch (err) {
+      console.error("fetchPlannerData error:", err);
+    }
+  }, [session.school.id]);
+
   const forceSync = useCallback(async () => {
     setSaveStatus("saving");
     try {
-      await fetchStudents();
+      await Promise.all([fetchStudents(), fetchPlannerData()]);
       setSaveStatus("saved");
     } catch {
       setSaveStatus("error");
     }
-  }, [fetchStudents]);
+  }, [fetchStudents, fetchPlannerData]);
 
   const switchStudent = useCallback((id: string) => {
     setActiveStudentId(id);
@@ -416,6 +486,137 @@ export function AppProvider({ session, initialStudents, children }: AppProviderP
     return getAssessments(activeStudent.competencies);
   }, [activeStudent]);
 
+  const createLessonPreparation = useCallback(
+    async (params: {
+      title: string;
+      notes?: string;
+      competencies: string[];
+      studentIds: string[];
+    }) => {
+      setSaveStatus("saving");
+      try {
+        const prep = await createLessonPreparationInDb({
+          schoolId: session.school.id,
+          createdBy: session.user.id,
+          title: params.title,
+          notes: params.notes,
+          competencies: params.competencies,
+          studentIds: params.studentIds,
+        });
+        setLessonPreparations((prev) => [prep, ...prev]);
+        setSaveStatus("saved");
+        triggerAutoSave();
+        return prep;
+      } catch (err) {
+        console.error("createLessonPreparation error:", err);
+        setSaveStatus("error");
+        throw err;
+      }
+    },
+    [session.school.id, session.user.id, triggerAutoSave]
+  );
+
+  const updateLessonPreparation = useCallback(
+    async (
+      id: string,
+      params: {
+        title: string;
+        notes?: string;
+        competencies: string[];
+        studentIds: string[];
+      }
+    ) => {
+      setSaveStatus("saving");
+      const updated = await updateLessonPreparationInDb(id, {
+        title: params.title,
+        notes: params.notes || "",
+        competencies: params.competencies,
+        student_ids: params.studentIds,
+      });
+      setLessonPreparations((prev) =>
+        prev.map((p) => (p.id === id ? updated : p))
+      );
+      setSaveStatus("saved");
+      triggerAutoSave();
+    },
+    [triggerAutoSave]
+  );
+
+  const deleteLessonPreparation = useCallback(async (id: string) => {
+    setSaveStatus("saving");
+    await deleteLessonPreparationFromDb(id);
+    setLessonPreparations((prev) => prev.filter((p) => p.id !== id));
+    setPlannerEvents((prev) =>
+      prev.map((e) =>
+        e.lesson_preparation_id === id
+          ? { ...e, lesson_preparation_id: null }
+          : e
+      )
+    );
+    setSaveStatus("saved");
+    triggerAutoSave();
+  }, [triggerAutoSave]);
+
+  const createPlannerEvent = useCallback(
+    async (params: {
+      eventDate: string;
+      assignmentTitle: string;
+      assignmentNotes?: string;
+      lessonPreparationId?: string | null;
+      studentIds: string[];
+    }) => {
+      setSaveStatus("saving");
+      const event = await createPlannerEventInDb({
+        schoolId: session.school.id,
+        eventDate: params.eventDate,
+        assignmentTitle: params.assignmentTitle,
+        assignmentNotes: params.assignmentNotes,
+        lessonPreparationId: params.lessonPreparationId,
+        studentIds: params.studentIds,
+      });
+      setPlannerEvents((prev) => [event, ...prev]);
+      setSaveStatus("saved");
+      triggerAutoSave();
+    },
+    [session.school.id, triggerAutoSave]
+  );
+
+  const updatePlannerEvent = useCallback(
+    async (
+      id: string,
+      params: {
+        eventDate: string;
+        assignmentTitle: string;
+        assignmentNotes?: string;
+        lessonPreparationId?: string | null;
+        studentIds: string[];
+      }
+    ) => {
+      setSaveStatus("saving");
+      const updated = await updatePlannerEventInDb(id, {
+        event_date: params.eventDate,
+        assignment_title: params.assignmentTitle,
+        assignment_notes: params.assignmentNotes || "",
+        lesson_preparation_id: params.lessonPreparationId ?? null,
+        student_ids: params.studentIds,
+      });
+      setPlannerEvents((prev) =>
+        prev.map((e) => (e.id === id ? updated : e))
+      );
+      setSaveStatus("saved");
+      triggerAutoSave();
+    },
+    [triggerAutoSave]
+  );
+
+  const deletePlannerEvent = useCallback(async (id: string) => {
+    setSaveStatus("saving");
+    await deletePlannerEventFromDb(id);
+    setPlannerEvents((prev) => prev.filter((e) => e.id !== id));
+    setSaveStatus("saved");
+    triggerAutoSave();
+  }, [triggerAutoSave]);
+
   // Realtime subscription structure (prepared, not fully active)
   useEffect(() => {
     const supabase = createClient();
@@ -485,6 +686,15 @@ export function AppProvider({ session, initialStudents, children }: AppProviderP
     getAnalyse,
     getDoorstroom,
     getAssessmentsMap,
+    lessonPreparations,
+    plannerEvents,
+    fetchPlannerData,
+    createLessonPreparation,
+    updateLessonPreparation,
+    deleteLessonPreparation,
+    createPlannerEvent,
+    updatePlannerEvent,
+    deletePlannerEvent,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

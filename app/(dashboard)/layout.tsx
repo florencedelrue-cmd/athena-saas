@@ -1,9 +1,8 @@
 import { requireAuth } from "@/lib/auth";
-import {
-  fetchStudentsForSchoolServer,
-  createStudentInDbServer,
-} from "@/lib/db-server";
+import { ensureDemoStudents } from "@/lib/db-server";
+import { fetchPlannerDataForSchoolServer } from "@/lib/db-planner-server";
 import { AppProvider } from "@/context/AppContext";
+import type { LessonPreparation, PlannerEvent } from "@/types";
 
 export default async function DashboardLayout({
   children,
@@ -12,21 +11,25 @@ export default async function DashboardLayout({
 }) {
   const session = await requireAuth();
 
-  let students = await fetchStudentsForSchoolServer(session.school.id);
+  const students = await ensureDemoStudents(session.school.id, session.user.id);
 
-  if (students.length === 0) {
-    const defaultStudent = await createStudentInDbServer({
-      schoolId: session.school.id,
-      name: "Nieuw Leerlingdossier",
-      class: "5 Elektrotechnieken Duaal",
-      schoolYear: "2026-2027",
-      coach: "",
-    });
-    students = [defaultStudent];
+  let plannerData: {
+    lessonPreparations: LessonPreparation[];
+    plannerEvents: PlannerEvent[];
+  } = { lessonPreparations: [], plannerEvents: [] };
+  try {
+    plannerData = await fetchPlannerDataForSchoolServer(session.school.id);
+  } catch {
+    // Planner-tabellen nog niet gemigreerd
   }
 
   return (
-    <AppProvider session={session} initialStudents={students}>
+    <AppProvider
+      session={session}
+      initialStudents={students}
+      initialLessonPreparations={plannerData.lessonPreparations}
+      initialPlannerEvents={plannerData.plannerEvents}
+    >
       {children}
     </AppProvider>
   );

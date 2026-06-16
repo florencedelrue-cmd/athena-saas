@@ -42,6 +42,9 @@ export function Header() {
             className="h-10 w-auto object-contain"
             priority
           />
+          <span className="bg-athenaPink text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded hidden sm:inline">
+            TOCI 2.0
+          </span>
         </div>
 
         <nav className="flex bg-slate-100 p-1 rounded-xl overflow-x-auto">
@@ -64,6 +67,16 @@ export function Header() {
             }`}
           >
             Cyclus Tracker
+          </button>
+          <button
+            onClick={() => switchTab("planner")}
+            className={`tab-btn px-4 md:px-6 py-3 md:py-2.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+              mainTab === "planner"
+                ? "bg-white text-athenaBlue shadow-sm"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            Planner
           </button>
         </nav>
 
