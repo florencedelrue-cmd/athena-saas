@@ -19,7 +19,7 @@ export async function ensureDemoStudents(
 
   if (students.length === 0) {
     const demo = await seedDemoData(supabase, schoolId, userId);
-    if (demo) students = [demo];
+    if (demo) students = demo;
   }
 
   return students;
