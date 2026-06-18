@@ -1,15 +1,12 @@
 "use client";
 
 import Image from "next/image";
-import { RefreshCw, LogOut } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { RefreshCw } from "lucide-react";
 import { useApp } from "@/context/AppContext";
-import { createClient } from "@/lib/supabase";
 import type { MainTab } from "@/types";
 
 export function Header() {
-  const { mainTab, setMainTab, saveStatus, forceSync, session } = useApp();
-  const router = useRouter();
+  const { mainTab, setMainTab, saveStatus, forceSync, session, previewMode } = useApp();
 
   const statusText = {
     idle: "⚡ Live opslaan actief",
@@ -22,13 +19,6 @@ export function Header() {
   const switchTab = (tab: MainTab) => {
     setMainTab(tab);
   };
-
-  async function handleLogout() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/login");
-    router.refresh();
-  }
 
   return (
     <header className="bg-white border-b border-slate-200 sticky top-0 z-40 px-4 md:px-6 py-4 shadow-sm">
@@ -83,9 +73,11 @@ export function Header() {
         <div className="flex items-center space-x-3 justify-end">
           <div className="hidden lg:block text-right">
             <p className="text-[10px] text-slate-400 font-semibold uppercase">{session.school.name}</p>
-            <p className="text-[10px] text-slate-500">
-              {session.user.email} · {session.user.role}
-            </p>
+            {!previewMode && (
+              <p className="text-[10px] text-slate-500">
+                {session.user.email} · {session.user.role}
+              </p>
+            )}
           </div>
           <span className="text-xs text-slate-400 font-semibold italic hidden sm:inline">
             {statusText}
@@ -98,13 +90,6 @@ export function Header() {
             <RefreshCw
               className={`w-4 h-4 ${saveStatus === "saving" ? "animate-spin" : ""}`}
             />
-          </button>
-          <button
-            onClick={handleLogout}
-            className="p-3 md:p-2 text-slate-400 hover:text-red-500 rounded-xl hover:bg-slate-50 transition"
-            title="Uitloggen"
-          >
-            <LogOut className="w-4 h-4" />
           </button>
         </div>
       </div>

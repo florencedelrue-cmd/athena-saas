@@ -1,7 +1,19 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { isPreviewMode } from "@/lib/preview-mode";
 
 export async function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+
+  if (isPreviewMode()) {
+    if (pathname.startsWith("/login") || pathname.startsWith("/signup")) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/";
+      return NextResponse.redirect(url);
+    }
+    return NextResponse.next({ request });
+  }
+
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     return NextResponse.next({ request });
   }
@@ -33,9 +45,9 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const isLoginRoute = request.nextUrl.pathname.startsWith("/login");
-  const isSignupRoute = request.nextUrl.pathname.startsWith("/signup");
-  const isApiRoute = request.nextUrl.pathname.startsWith("/api");
+  const isLoginRoute = pathname.startsWith("/login");
+  const isSignupRoute = pathname.startsWith("/signup");
+  const isApiRoute = pathname.startsWith("/api");
 
   if (isSignupRoute) {
     const url = request.nextUrl.clone();

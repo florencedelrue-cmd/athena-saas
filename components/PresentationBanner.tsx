@@ -18,7 +18,7 @@ export function PresentationBanner() {
               Athena TOCI 2.0 — Duaal Leren Platform
             </p>
             <p className="text-[11px] text-white/80 hidden sm:block">
-              Gespreksfiche · Competentietracker · Planner — live demo met voorbeelddata
+              Demo — direct toegang, geen login · Senne Devos & Lisa Peeters
             </p>
           </div>
         </div>
