@@ -19,7 +19,7 @@ export function AthenaLogo({
       alt="Athena Logo"
       width={width}
       height={height}
-      className={`${className} mix-blend-screen`}
+      className={className}
       priority={priority}
     />
   );
