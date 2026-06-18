@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { AthenaLogo } from "@/components/AthenaLogo";
 import { createClient } from "@/lib/supabase";
 import { isAllowedTeacherEmail } from "@/lib/school-domains";
 import { showToast } from "@/components/ui/Toast";
@@ -61,14 +61,7 @@ export default function LoginPage() {
     <div className="min-h-screen bg-athenaBg flex items-center justify-center px-4 md:px-8">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Image
-            src="/logo_athena.png"
-            alt="Athena Logo"
-            width={160}
-            height={60}
-            className="h-14 w-auto object-contain mx-auto mb-4"
-            priority
-          />
+          <AthenaLogo className="h-14 w-auto object-contain mx-auto mb-4" width={160} height={60} priority />
           <h1 className="text-xl font-bold text-slate-800">Welkom terug</h1>
           <p className="text-sm text-slate-500 mt-1">
             Athena TOCI 2.0 — Gespreksfiche & Competentietracker

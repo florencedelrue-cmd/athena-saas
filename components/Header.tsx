@@ -1,7 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import { RefreshCw } from "lucide-react";
+import { AthenaLogo } from "@/components/AthenaLogo";
 import { useApp } from "@/context/AppContext";
 import type { MainTab } from "@/types";
 
@@ -24,14 +24,7 @@ export function Header() {
     <header className="bg-white border-b border-slate-200 sticky top-0 z-40 px-4 md:px-6 py-4 shadow-sm">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div className="flex items-center space-x-3">
-          <Image
-            src="/logo_athena.png"
-            alt="Athena Logo"
-            width={120}
-            height={40}
-            className="h-10 w-auto object-contain"
-            priority
-          />
+          <AthenaLogo priority />
           <span className="bg-athenaPink text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded hidden sm:inline">
             TOCI 2.0
           </span>
