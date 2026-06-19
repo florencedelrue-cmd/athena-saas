@@ -24,7 +24,10 @@ export async function fetchPlannerDataForSchoolServer(schoolId: string): Promise
   if (eventsRes.error) throw eventsRes.error;
 
   return {
-    lessonPreparations: (prepsRes.data || []) as LessonPreparation[],
+    lessonPreparations: ((prepsRes.data || []) as LessonPreparation[]).map((prep) => ({
+      ...prep,
+      drive_links: prep.drive_links ?? [],
+    })),
     plannerEvents: (eventsRes.data || []) as PlannerEvent[],
   };
 }

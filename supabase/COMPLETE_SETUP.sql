@@ -271,6 +271,7 @@ CREATE TABLE IF NOT EXISTS lesson_preparations (
   notes TEXT NOT NULL DEFAULT '',
   competencies JSONB NOT NULL DEFAULT '[]',
   student_ids JSONB NOT NULL DEFAULT '[]',
+  drive_links JSONB NOT NULL DEFAULT '[]',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -344,3 +345,7 @@ WHERE NOT EXISTS (SELECT 1 FROM schools WHERE email_domain = 'athena-clw.be');
 INSERT INTO schools (name, plan, email_domain, subscription_status)
 SELECT 'Athena Heule', 'pro', 'athena-heule.be', 'active'
 WHERE NOT EXISTS (SELECT 1 FROM schools WHERE email_domain = 'athena-heule.be');
+
+-- Google Drive cursusmateriaal (lesvoorbereidingen)
+ALTER TABLE lesson_preparations
+  ADD COLUMN IF NOT EXISTS drive_links JSONB NOT NULL DEFAULT '[]';

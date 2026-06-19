@@ -4,13 +4,16 @@ import { X, FileText, Save } from "lucide-react";
 import { useEffect, useState } from "react";
 import { StudentMultiSelect } from "@/components/planner/StudentMultiSelect";
 import { CompetencyMultiSelect } from "@/components/planner/CompetencyMultiSelect";
-import type { LessonPreparation } from "@/types";
+import { DriveLinksEditor } from "@/components/planner/DriveLinksEditor";
+import { sanitizeDriveLinks } from "@/lib/google-drive";
+import type { DriveMaterialLink, LessonPreparation } from "@/types";
 
 export interface LessonPrepFormData {
   title: string;
   notes: string;
   competencies: string[];
   studentIds: string[];
+  driveLinks: DriveMaterialLink[];
 }
 
 interface LessonPrepModalProps {
@@ -32,6 +35,7 @@ export function LessonPrepModal({
   const [notes, setNotes] = useState("");
   const [competencies, setCompetencies] = useState<string[]>([]);
   const [studentIds, setStudentIds] = useState<string[]>([]);
+  const [driveLinks, setDriveLinks] = useState<DriveMaterialLink[]>([]);
 
   useEffect(() => {
     if (open) {
@@ -39,6 +43,7 @@ export function LessonPrepModal({
       setNotes(initial?.notes || "");
       setCompetencies(initial?.competencies || []);
       setStudentIds(initial?.student_ids || []);
+      setDriveLinks(initial?.drive_links?.length ? [...initial.drive_links] : []);
     }
   }, [open, initial]);
 
@@ -47,7 +52,13 @@ export function LessonPrepModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
-    await onSave({ title: title.trim(), notes, competencies, studentIds });
+    await onSave({
+      title: title.trim(),
+      notes,
+      competencies,
+      studentIds,
+      driveLinks: sanitizeDriveLinks(driveLinks),
+    });
   };
 
   return (
@@ -113,6 +124,8 @@ export function LessonPrepModal({
             </label>
             <StudentMultiSelect selectedIds={studentIds} onChange={setStudentIds} />
           </div>
+
+          <DriveLinksEditor links={driveLinks} onChange={setDriveLinks} />
 
           <button
             type="submit"

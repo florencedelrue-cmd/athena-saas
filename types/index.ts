@@ -96,6 +96,11 @@ export interface AuthSession {
 
 export type MainTab = "gesprek" | "volgsysteem" | "planner";
 
+export interface DriveMaterialLink {
+  label: string;
+  url: string;
+}
+
 export interface LessonPreparation {
   id: string;
   school_id: string;
@@ -104,6 +109,7 @@ export interface LessonPreparation {
   notes: string;
   competencies: string[];
   student_ids: string[];
+  drive_links: DriveMaterialLink[];
   created_at: string;
   updated_at: string;
 }

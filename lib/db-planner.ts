@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase";
-import type { LessonPreparation, PlannerEvent } from "@/types";
+import type { LessonPreparation, PlannerEvent, DriveMaterialLink } from "@/types";
 
 export async function fetchPlannerDataForSchool(schoolId: string): Promise<{
   lessonPreparations: LessonPreparation[];
@@ -24,7 +24,10 @@ export async function fetchPlannerDataForSchool(schoolId: string): Promise<{
   if (eventsRes.error) throw eventsRes.error;
 
   return {
-    lessonPreparations: (prepsRes.data || []) as LessonPreparation[],
+    lessonPreparations: ((prepsRes.data || []) as LessonPreparation[]).map((prep) => ({
+      ...prep,
+      drive_links: prep.drive_links ?? [],
+    })),
     plannerEvents: (eventsRes.data || []) as PlannerEvent[],
   };
 }
@@ -36,6 +39,7 @@ export async function createLessonPreparationInDb(params: {
   notes?: string;
   competencies: string[];
   studentIds: string[];
+  driveLinks?: DriveMaterialLink[];
 }): Promise<LessonPreparation> {
   const supabase = createClient();
 
@@ -48,6 +52,7 @@ export async function createLessonPreparationInDb(params: {
       notes: params.notes || "",
       competencies: params.competencies,
       student_ids: params.studentIds,
+      drive_links: params.driveLinks || [],
     })
     .select()
     .single();
@@ -59,7 +64,7 @@ export async function createLessonPreparationInDb(params: {
 export async function updateLessonPreparationInDb(
   id: string,
   updates: Partial<
-    Pick<LessonPreparation, "title" | "notes" | "competencies" | "student_ids">
+    Pick<LessonPreparation, "title" | "notes" | "competencies" | "student_ids" | "drive_links">
   >
 ): Promise<LessonPreparation> {
   const supabase = createClient();

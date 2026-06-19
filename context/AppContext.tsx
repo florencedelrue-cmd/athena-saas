@@ -33,6 +33,7 @@ import type {
   AuthSession,
   CompetencyScore,
   DoorstroomNotes,
+  DriveMaterialLink,
   LessonPreparation,
   Log,
   Log,
@@ -86,6 +87,7 @@ interface AppContextValue {
     notes?: string;
     competencies: string[];
     studentIds: string[];
+    driveLinks?: DriveMaterialLink[];
   }) => Promise<LessonPreparation>;
   updateLessonPreparation: (
     id: string,
@@ -94,6 +96,7 @@ interface AppContextValue {
       notes?: string;
       competencies: string[];
       studentIds: string[];
+      driveLinks?: DriveMaterialLink[];
     }
   ) => Promise<void>;
   deleteLessonPreparation: (id: string) => Promise<void>;
@@ -693,6 +696,7 @@ export function AppProvider({
       notes?: string;
       competencies: string[];
       studentIds: string[];
+      driveLinks?: DriveMaterialLink[];
     }) => {
       setSaveStatus("saving");
       if (previewMode) {
@@ -704,6 +708,7 @@ export function AppProvider({
           notes: params.notes || "",
           competencies: params.competencies,
           student_ids: params.studentIds,
+          drive_links: params.driveLinks || [],
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
@@ -720,6 +725,7 @@ export function AppProvider({
           notes: params.notes,
           competencies: params.competencies,
           studentIds: params.studentIds,
+          driveLinks: params.driveLinks,
         });
         setLessonPreparations((prev) => [prep, ...prev]);
         setSaveStatus("saved");
@@ -742,6 +748,7 @@ export function AppProvider({
         notes?: string;
         competencies: string[];
         studentIds: string[];
+        driveLinks?: DriveMaterialLink[];
       }
     ) => {
       setSaveStatus("saving");
@@ -755,6 +762,7 @@ export function AppProvider({
                   notes: params.notes || "",
                   competencies: params.competencies,
                   student_ids: params.studentIds,
+                  drive_links: params.driveLinks || [],
                   updated_at: new Date().toISOString(),
                 }
               : p
@@ -769,6 +777,7 @@ export function AppProvider({
         notes: params.notes || "",
         competencies: params.competencies,
         student_ids: params.studentIds,
+        drive_links: params.driveLinks || [],
       });
       setLessonPreparations((prev) =>
         prev.map((p) => (p.id === id ? updated : p))

@@ -199,6 +199,12 @@ async function seedDemoPlanner(
           "Introductie veiligheidsprocedures, PBM's en EHBO-basis. Praktische oefening met verdeelbord.",
         competencies: ["vt3", "am2", "lb3"],
         student_ids: studentIds,
+        drive_links: [
+          {
+            label: "EHBO & veiligheid — cursusmap",
+            url: "https://drive.google.com/file/d/1demo-ehbo-veiligheid/view",
+          },
+        ],
       })
       .select()
       .single();
@@ -232,6 +238,12 @@ async function seedDemoPlanner(
         "Leerlingen verkennen installatiebedrijven, stellen interviewvragen en reflecteren op loopbaandoelen.",
       competencies: ["lb2", "lb3", "am1"],
       student_ids: [studentIds[1]],
+      drive_links: [
+        {
+          label: "Stagegids installatiesector",
+          url: "https://drive.google.com/file/d/1demo-stagegids/view",
+        },
+      ],
     });
   } catch {
     // Planner-tabellen mogelijk nog niet gemigreerd

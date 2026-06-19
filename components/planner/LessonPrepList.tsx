@@ -3,6 +3,7 @@
 import { FileText, Pencil, Trash2 } from "lucide-react";
 import { CompetencyBadges } from "@/components/planner/CompetencyMultiSelect";
 import { StudentBadges } from "@/components/planner/StudentMultiSelect";
+import { DriveMaterialBadges } from "@/components/planner/DriveLinksEditor";
 import type { LessonPreparation } from "@/types";
 
 interface LessonPrepListProps {
@@ -96,6 +97,14 @@ export function LessonPrepList({
                   <div className="mt-1">
                     <StudentBadges studentIds={prep.student_ids} />
                   </div>
+                </div>
+              )}
+              {prep.drive_links?.length > 0 && (
+                <div>
+                  <span className="text-[9px] text-slate-400 font-bold uppercase">
+                    Google Drive:
+                  </span>
+                  <DriveMaterialBadges links={prep.drive_links} />
                 </div>
               )}
             </div>

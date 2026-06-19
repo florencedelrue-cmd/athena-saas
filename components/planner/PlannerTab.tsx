@@ -9,9 +9,10 @@ import { LessonPrepModal } from "@/components/planner/LessonPrepModal";
 import { PlannerEventModal } from "@/components/planner/PlannerEventModal";
 import { StudentBadges } from "@/components/planner/StudentMultiSelect";
 import { CompetencyBadges } from "@/components/planner/CompetencyMultiSelect";
+import { DriveMaterialBadges } from "@/components/planner/DriveLinksEditor";
 import { formatDisplayDate, toDateKey } from "@/lib/planner-utils";
 import { showToast } from "@/components/ui/Toast";
-import type { LessonPreparation, PlannerEvent } from "@/types";
+import type { LessonPreparation, PlannerEvent, DriveMaterialLink } from "@/types";
 
 export function PlannerTab() {
   const {
@@ -116,6 +117,7 @@ export function PlannerTab() {
     notes: string;
     competencies: string[];
     studentIds: string[];
+    driveLinks: DriveMaterialLink[];
   }) => {
     setSaving(true);
     try {
@@ -252,6 +254,14 @@ export function PlannerTab() {
                             </p>
                           )}
                           <CompetencyBadges competencyIds={linkedPrep.competencies} />
+                          {linkedPrep.drive_links?.length > 0 && (
+                            <div>
+                              <span className="text-[9px] text-slate-400 font-bold uppercase">
+                                Cursusmateriaal:
+                              </span>
+                              <DriveMaterialBadges links={linkedPrep.drive_links} compact />
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>

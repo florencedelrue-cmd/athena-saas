@@ -202,6 +202,16 @@ export function getPreviewPlannerData(): {
       "Introductie veiligheidsprocedures, PBM's en EHBO-basis. Praktische oefening met verdeelbord.",
     competencies: ["vt3", "am2", "lb3"],
     student_ids: [SENNE.id, LISA.id],
+    drive_links: [
+      {
+        label: "EHBO & veiligheid — cursusmap",
+        url: "https://drive.google.com/file/d/1demo-ehbo-veiligheid/view",
+      },
+      {
+        label: "Werkblad PBM's",
+        url: "https://docs.google.com/document/d/1demo-werkblad-pbm/view",
+      },
+    ],
     created_at: NOW,
     updated_at: NOW,
   };
@@ -215,6 +225,12 @@ export function getPreviewPlannerData(): {
       "Leerlingen verkennen installatiebedrijven, stellen interviewvragen en reflecteren op loopbaandoelen.",
     competencies: ["lb2", "lb3", "am1"],
     student_ids: [LISA.id],
+    drive_links: [
+      {
+        label: "Stagegids installatiesector",
+        url: "https://drive.google.com/file/d/1demo-stagegids/view",
+      },
+    ],
     created_at: NOW,
     updated_at: NOW,
   };
