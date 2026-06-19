@@ -7,7 +7,7 @@ import type {
 
 export const PROCESS_STEPS: Record<number, ProcessStepInfo> = {
   1: { name: "1. Screening", focus: "lb", focusText: "Focus op Loopbaangericht (LB)" },
-  2: { name: "2. Analyse", focus: "lb", focusText: "Focus op Loopbaangericht (LB)" },
+  2: { name: "2. Analyse screeningsklassenraad", focus: "lb", focusText: "Focus op Loopbaangericht (LB)" },
   3: { name: "3. Competentiemeter", focus: "vt", focusText: "Focus op Vaktechnisch (VT)" },
   4: { name: "4. Uitvoering", focus: "am", focusText: "Focus op Arbeidsmarktgericht (AM)" },
   5: { name: "5. Doorstroom", focus: "all", focusText: "Integrale Evaluatie (Alle domeinen)" },

@@ -11,7 +11,7 @@ import { useApp } from "@/context/AppContext";
 
 const STEPS = [
   { num: 1, label: "1. Screening", icon: Compass },
-  { num: 2, label: "2. Analyse", icon: FileSearch },
+  { num: 2, label: "2. Analyse screeningsklassenraad", icon: FileSearch },
   { num: 3, label: "3. Competentiemeter", icon: Sliders },
   { num: 4, label: "4. Uitvoering", icon: Activity },
   { num: 5, label: "5. Doorstroom", icon: LogOut },
