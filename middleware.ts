@@ -2,6 +2,10 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { hasAdminPreviewRequest } from "@/lib/admin-preview-edge";
 import { isAuthRequired } from "@/lib/open-access";
+import {
+  OPEN_SESSION_SKIP_COOKIE,
+  shouldSkipOpenSession,
+} from "@/lib/open-session-edge";
 import { isPreviewMode } from "@/lib/preview-mode";
 
 function hasSupabaseConfig(): boolean {
@@ -81,7 +85,7 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    if (!user && !isOpenSession && !isAuthCallback) {
+    if (!user && !isOpenSession && !isAuthCallback && !shouldSkipOpenSession(request)) {
       const url = request.nextUrl.clone();
       url.pathname = "/api/auth/open-session";
       if (pathname !== "/") {
