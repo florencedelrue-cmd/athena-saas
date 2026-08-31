@@ -1,11 +1,12 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { isPreviewMode } from "@/lib/preview-mode";
+import { hasAdminPreviewRequest } from "@/lib/admin-preview-edge";
 
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
-  if (isPreviewMode()) {
+  if (isPreviewMode() || (await hasAdminPreviewRequest(request))) {
     if (pathname.startsWith("/login") || pathname.startsWith("/signup")) {
       const url = request.nextUrl.clone();
       url.pathname = "/";
@@ -47,6 +48,7 @@ export async function middleware(request: NextRequest) {
 
   const isLoginRoute = pathname.startsWith("/login");
   const isSignupRoute = pathname.startsWith("/signup");
+  const isAuthCallback = pathname.startsWith("/auth/callback");
   const isApiRoute = pathname.startsWith("/api");
 
   if (isSignupRoute) {
@@ -59,7 +61,7 @@ export async function middleware(request: NextRequest) {
     return supabaseResponse;
   }
 
-  if (!user && !isLoginRoute) {
+  if (!user && !isLoginRoute && !isAuthCallback) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

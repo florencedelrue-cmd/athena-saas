@@ -2,11 +2,13 @@
 
 import { Compass, CheckCircle, TrendingUp } from "lucide-react";
 import { useApp } from "@/context/AppContext";
+import { isUserEditing } from "@/lib/form-sync";
+import { useDebouncedSave } from "@/lib/use-debounced-save";
 import { useCallback, useEffect, useState } from "react";
 import type { ScreeningNotes } from "@/types";
 
 export function ScreeningCard() {
-  const { getScreening, saveScreeningNotes } = useApp();
+  const { activeStudentId, getScreening, saveScreeningNotes } = useApp();
   const [notes, setNotes] = useState<ScreeningNotes>({
     feedUp: "",
     feedback: "",
@@ -14,22 +16,17 @@ export function ScreeningCard() {
   });
 
   useEffect(() => {
+    if (isUserEditing()) return;
     setNotes(getScreening());
-  }, [getScreening]);
+  }, [getScreening, activeStudentId]);
+
+  useDebouncedSave(notes, saveScreeningNotes);
 
   const handleChange = useCallback(
     (field: keyof ScreeningNotes, value: string) => {
-      const updated = { ...notes, [field]: value };
-      setNotes(updated);
+      setNotes((prev) => ({ ...prev, [field]: value }));
     },
-    [notes]
-  );
-
-  const handleBlur = useCallback(
-    (field: keyof ScreeningNotes) => {
-      saveScreeningNotes(notes);
-    },
-    [notes, saveScreeningNotes]
+    []
   );
 
   return (
@@ -52,7 +49,6 @@ export function ScreeningCard() {
             <textarea
               value={notes.feedUp}
               onChange={(e) => handleChange("feedUp", e.target.value)}
-              onBlur={() => handleBlur("feedUp")}
               rows={6}
               placeholder="Wat zijn de doelen, motivatie en verwachtingen van deze leerling bij de start?..."
               className="w-full text-sm text-slate-700 placeholder-slate-400 outline-none resize-none bg-transparent"
@@ -70,7 +66,6 @@ export function ScreeningCard() {
             <textarea
               value={notes.feedback}
               onChange={(e) => handleChange("feedback", e.target.value)}
-              onBlur={() => handleBlur("feedback")}
               rows={6}
               placeholder="Wat zijn de sterktes en reeds geobserveerde talenten bij de start?..."
               className="w-full text-sm text-slate-700 placeholder-slate-400 outline-none resize-none bg-transparent"
@@ -88,7 +83,6 @@ export function ScreeningCard() {
             <textarea
               value={notes.feedForward}
               onChange={(e) => handleChange("feedForward", e.target.value)}
-              onBlur={() => handleBlur("feedForward")}
               rows={6}
               placeholder="Welke concrete afspraken maken we om de start vlekkeloos te laten verlopen?..."
               className="w-full text-sm text-slate-700 placeholder-slate-400 outline-none resize-none bg-transparent"

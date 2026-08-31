@@ -61,11 +61,14 @@ export type FicheData = ScreeningNotes | AnalyseNotes | DoorstroomNotes | Record
 export type ScoreValue = "zelden" | "soms" | "meestal" | "altijd" | "nvt";
 
 export interface CompetencyScore {
-  m1: ScoreValue;
-  m2: ScoreValue;
-  m3: ScoreValue;
+  per1: ScoreValue;
+  per2: ScoreValue;
+  per3: ScoreValue;
+  per4: ScoreValue;
   note: string;
 }
+
+export type PeriodKey = "per1" | "per2" | "per3" | "per4";
 
 export interface Competency {
   id: string;
@@ -81,6 +84,7 @@ export interface Log {
   title: string;
   content: string;
   competencies_used: string[];
+  planner_event_id?: string | null;
 }
 
 export interface StudentWithData extends Student {
@@ -94,7 +98,7 @@ export interface AuthSession {
   school: School;
 }
 
-export type MainTab = "gesprek" | "volgsysteem" | "planner";
+export type MainTab = "gesprek" | "volgsysteem";
 
 export interface DriveMaterialLink {
   label: string;

@@ -38,10 +38,10 @@ const SENNE: DemoStudentConfig = {
     gesprek: "Gesprek toont grote bereidheid om te leren.",
   },
   scores: {
-    vt1: { m1: "soms", m2: "meestal", m3: "altijd", note: "Sterk technisch inzicht bij bekabeling." },
-    vt3: { m1: "soms", m2: "meestal", m3: "meestal", note: "PBM's consequent correct gebruikt." },
-    am2: { m1: "zelden", m2: "soms", m3: "meestal", note: "Stiptheid verbetert merkbaar." },
-    am5: { m1: "meestal", m2: "altijd", m3: "altijd", note: "Zeer gemotiveerd op de werf." },
+    vt1: { per1: "soms", per2: "meestal", per3: "altijd", per4: "nvt", note: "Sterk technisch inzicht bij bekabeling." },
+    vt3: { per1: "soms", per2: "meestal", per3: "meestal", per4: "nvt", note: "PBM's consequent correct gebruikt." },
+    am2: { per1: "zelden", per2: "soms", per3: "meestal", per4: "nvt", note: "Stiptheid verbetert merkbaar." },
+    am5: { per1: "meestal", per2: "altijd", per3: "altijd", per4: "nvt", note: "Zeer gemotiveerd op de werf." },
   },
   logs: [
     {
@@ -76,10 +76,10 @@ const LISA: DemoStudentConfig = {
     gesprek: "Lisa wil graag meer verantwoordelijkheid nemen in teamverband.",
   },
   scores: {
-    lb2: { m1: "meestal", m2: "meestal", m3: "altijd", note: "Duidelijke motivatie voor duaal traject." },
-    lb3: { m1: "soms", m2: "meestal", m3: "meestal", note: "Actief op zoek naar stage-informatie." },
-    am1: { m1: "soms", m2: "meestal", m3: "meestal", note: "Professionele communicatie naar leerkracht." },
-    vt2: { m1: "zelden", m2: "soms", m3: "meestal", note: "Planning wordt stilaan zelfstandiger." },
+    lb2: { per1: "meestal", per2: "meestal", per3: "altijd", per4: "nvt", note: "Duidelijke motivatie voor duaal traject." },
+    lb3: { per1: "soms", per2: "meestal", per3: "meestal", per4: "nvt", note: "Actief op zoek naar stage-informatie." },
+    am1: { per1: "soms", per2: "meestal", per3: "meestal", per4: "nvt", note: "Professionele communicatie naar leerkracht." },
+    vt2: { per1: "zelden", per2: "soms", per3: "meestal", per4: "nvt", note: "Planning wordt stilaan zelfstandiger." },
   },
   logs: [
     {

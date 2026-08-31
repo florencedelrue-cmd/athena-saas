@@ -7,29 +7,36 @@ import {
   getPreviewStudents,
 } from "@/lib/demo-preview-data";
 import { isPreviewMode } from "@/lib/preview-mode";
+import { hasAdminPreviewSession } from "@/lib/admin-preview-server";
 import { AppProvider } from "@/context/AppContext";
 import type { LessonPreparation, PlannerEvent } from "@/types";
+
+async function renderPreviewProvider(children: React.ReactNode) {
+  const session = getPreviewSession();
+  const plannerData = getPreviewPlannerData();
+
+  return (
+    <AppProvider
+      previewMode
+      session={session}
+      initialStudents={getPreviewStudents()}
+      initialLessonPreparations={plannerData.lessonPreparations}
+      initialPlannerEvents={plannerData.plannerEvents}
+    >
+      {children}
+    </AppProvider>
+  );
+}
 
 export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  if (isPreviewMode()) {
-    const session = getPreviewSession();
-    const plannerData = getPreviewPlannerData();
+  const adminPreview = await hasAdminPreviewSession();
 
-    return (
-      <AppProvider
-        previewMode
-        session={session}
-        initialStudents={getPreviewStudents()}
-        initialLessonPreparations={plannerData.lessonPreparations}
-        initialPlannerEvents={plannerData.plannerEvents}
-      >
-        {children}
-      </AppProvider>
-    );
+  if (isPreviewMode() || adminPreview) {
+    return renderPreviewProvider(children);
   }
 
   const session = await requireAuth();

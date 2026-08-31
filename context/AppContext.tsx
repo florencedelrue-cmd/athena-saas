@@ -2,11 +2,15 @@
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { ALL_COMPETENCY_KEYS, DEFAULT_COMPETENCY_SCORE } from "@/lib/constants";
+import { type PeriodKey, normalizeCompetencyScore } from "@/lib/competency-score";
+import { loadPreviewData, savePreviewData } from "@/lib/preview-storage";
+import { subscribeToSchoolData, unsubscribeAll } from "@/lib/realtime";
 import { createClient } from "@/lib/supabase";
 import {
   addLogInDb,
   createStudentInDb,
   deleteLogFromDb,
+  deletePlannerEventLogsFromDb,
   deleteStudentFromDb,
   fetchStudentsForSchool,
   formatDateToDisplay,
@@ -15,9 +19,15 @@ import {
   getDoorstroomNotes,
   getScreeningNotes,
   saveFicheInDb,
+  syncPlannerEventLogsInDb,
   updateCompetencyInDb,
   updateStudentInDb,
 } from "@/lib/db";
+import {
+  applyPlannerEventLogsToStudents,
+  getCompetenciesForPlannerEvent,
+  removePlannerEventLogsFromStudents,
+} from "@/lib/planner-log-sync";
 import {
   createLessonPreparationInDb,
   createPlannerEventInDb,
@@ -36,15 +46,14 @@ import type {
   DriveMaterialLink,
   LessonPreparation,
   Log,
-  Log,
   MainTab,
   PlannerEvent,
   School,
   ScreeningNotes,
+  PeriodKey,
   ScoreValue,
   StudentWithData,
 } from "@/types";
-import type { RealtimeChannel } from "@supabase/supabase-js";
 
 type SaveStatus = "idle" | "saving" | "saved" | "error" | "detected";
 
@@ -57,6 +66,8 @@ interface AppContextValue {
   loading: boolean;
   saveStatus: SaveStatus;
   mainTab: MainTab;
+  plannerOpen: boolean;
+  setPlannerOpen: (open: boolean) => void;
   onlyShowIopFocus: boolean;
   setMainTab: (tab: MainTab) => void;
   setOnlyShowIopFocus: (value: boolean) => void;
@@ -69,7 +80,7 @@ interface AppContextValue {
   saveScreeningNotes: (notes: ScreeningNotes) => Promise<void>;
   saveAnalyseNotes: (notes: Omit<AnalyseNotes, "iopFocus">) => Promise<void>;
   toggleIopFocus: (competencyId: string) => Promise<void>;
-  setCompScore: (competencyKey: string, milestone: "m1" | "m2" | "m3", value: ScoreValue) => Promise<void>;
+  setCompScore: (competencyKey: string, period: PeriodKey, value: ScoreValue) => Promise<void>;
   setCompNote: (competencyKey: string, note: string) => Promise<void>;
   saveDoorstroomNotes: (notes: DoorstroomNotes) => Promise<void>;
   addLog: (params: { date: string; title: string; content: string; competenciesUsed: string[] }) => Promise<void>;
@@ -156,9 +167,47 @@ export function AppProvider({
   const [loading, setLoading] = useState(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [mainTab, setMainTab] = useState<MainTab>("gesprek");
+  const [plannerOpen, setPlannerOpen] = useState(false);
   const [onlyShowIopFocus, setOnlyShowIopFocus] = useState(false);
+  const [previewHydrated, setPreviewHydrated] = useState(!previewMode);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const realtimeChannels = useRef<RealtimeChannel[]>([]);
+  const previewSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const realtimeDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!previewMode) return;
+    const saved = loadPreviewData(session.school.id);
+    if (saved) {
+      setStudents(saved.students);
+      setLessonPreparations(saved.lessonPreparations);
+      setPlannerEvents(saved.plannerEvents);
+      setActiveStudentId(saved.students[0]?.id ?? null);
+    }
+    setPreviewHydrated(true);
+  }, [previewMode, session.school.id]);
+
+  useEffect(() => {
+    if (!previewMode || !previewHydrated) return;
+    if (previewSaveTimer.current) clearTimeout(previewSaveTimer.current);
+    previewSaveTimer.current = setTimeout(() => {
+      savePreviewData(session.school.id, {
+        students,
+        lessonPreparations,
+        plannerEvents,
+      });
+      setSaveStatus("saved");
+    }, 400);
+    return () => {
+      if (previewSaveTimer.current) clearTimeout(previewSaveTimer.current);
+    };
+  }, [
+    previewMode,
+    previewHydrated,
+    session.school.id,
+    students,
+    lessonPreparations,
+    plannerEvents,
+  ]);
 
   const activeStudent = students.find((s) => s.id === activeStudentId) ?? null;
 
@@ -201,6 +250,58 @@ export function AppProvider({
       setLoading(false);
     }
   }, [previewMode, session.school.id, activeStudentId]);
+
+  const refetchStudentsSilent = useCallback(async () => {
+    if (previewMode) return;
+    try {
+      const data = await fetchStudentsForSchool(session.school.id);
+      setStudents(data);
+      setActiveStudentId((current) => {
+        if (current && data.find((s) => s.id === current)) return current;
+        return data[0]?.id ?? null;
+      });
+      setSaveStatus("saved");
+    } catch (err) {
+      console.error("refetchStudentsSilent error:", err);
+    }
+  }, [previewMode, session.school.id]);
+
+  const refetchPlannerDataSilent = useCallback(async () => {
+    if (previewMode) return;
+    try {
+      const data = await fetchPlannerDataForSchool(session.school.id);
+      setLessonPreparations(data.lessonPreparations);
+      setPlannerEvents(data.plannerEvents);
+      setSaveStatus("saved");
+    } catch (err) {
+      console.error("refetchPlannerDataSilent error:", err);
+    }
+  }, [previewMode, session.school.id]);
+
+  const syncPlannerLogsForEvent = useCallback(
+    async (event: PlannerEvent, preps: LessonPreparation[]) => {
+      const competencies = getCompetenciesForPlannerEvent(event, preps);
+      if (previewMode) {
+        setStudents((prev) => applyPlannerEventLogsToStudents(prev, event, competencies));
+        return;
+      }
+      await syncPlannerEventLogsInDb(event, competencies);
+      await refetchStudentsSilent();
+    },
+    [previewMode, refetchStudentsSilent]
+  );
+
+  const removePlannerLogsForEvent = useCallback(
+    async (eventId: string) => {
+      if (previewMode) {
+        setStudents((prev) => removePlannerEventLogsFromStudents(prev, eventId));
+        return;
+      }
+      await deletePlannerEventLogsFromDb(eventId);
+      await refetchStudentsSilent();
+    },
+    [previewMode, refetchStudentsSilent]
+  );
 
   const fetchPlannerData = useCallback(async () => {
     if (previewMode) return;
@@ -462,11 +563,11 @@ export function AppProvider({
   );
 
   const setCompScore = useCallback(
-    async (competencyKey: string, milestone: "m1" | "m2" | "m3", value: ScoreValue) => {
+    async (competencyKey: string, period: PeriodKey, value: ScoreValue) => {
       if (!activeStudentId || !activeStudent) return;
       const assessments = getAssessments(activeStudent.competencies);
-      const current = assessments[competencyKey] || { m1: "nvt", m2: "nvt", m3: "nvt", note: "" };
-      const updated: CompetencyScore = { ...current, [milestone]: value };
+      const current = assessments[competencyKey] || { ...DEFAULT_COMPETENCY_SCORE };
+      const updated: CompetencyScore = { ...current, [period]: value };
       setSaveStatus("saving");
       if (previewMode) {
         updateLocalStudent(activeStudentId, (s) => ({
@@ -511,7 +612,7 @@ export function AppProvider({
     async (competencyKey: string, note: string) => {
       if (!activeStudentId || !activeStudent) return;
       const assessments = getAssessments(activeStudent.competencies);
-      const current = assessments[competencyKey] || { m1: "nvt", m2: "nvt", m3: "nvt", note: "" };
+      const current = assessments[competencyKey] || { ...DEFAULT_COMPETENCY_SCORE };
       const updated: CompetencyScore = { ...current, note };
       setSaveStatus("saving");
       if (previewMode) {
@@ -836,6 +937,7 @@ export function AppProvider({
           updated_at: new Date().toISOString(),
         };
         setPlannerEvents((prev) => [event, ...prev]);
+        await syncPlannerLogsForEvent(event, lessonPreparations);
         setSaveStatus("saved");
         triggerAutoSave();
         return;
@@ -849,10 +951,11 @@ export function AppProvider({
         studentIds: params.studentIds,
       });
       setPlannerEvents((prev) => [event, ...prev]);
+      await syncPlannerLogsForEvent(event, lessonPreparations);
       setSaveStatus("saved");
       triggerAutoSave();
     },
-    [previewMode, session.school.id, triggerAutoSave]
+    [previewMode, session.school.id, lessonPreparations, syncPlannerLogsForEvent, triggerAutoSave]
   );
 
   const updatePlannerEvent = useCallback(
@@ -868,21 +971,22 @@ export function AppProvider({
     ) => {
       setSaveStatus("saving");
       if (previewMode) {
+        const updated: PlannerEvent = {
+          id,
+          school_id: session.school.id,
+          event_date: params.eventDate,
+          assignment_title: params.assignmentTitle,
+          assignment_notes: params.assignmentNotes || "",
+          lesson_preparation_id: params.lessonPreparationId ?? null,
+          student_ids: params.studentIds,
+          created_at:
+            plannerEvents.find((e) => e.id === id)?.created_at || new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
         setPlannerEvents((prev) =>
-          prev.map((e) =>
-            e.id === id
-              ? {
-                  ...e,
-                  event_date: params.eventDate,
-                  assignment_title: params.assignmentTitle,
-                  assignment_notes: params.assignmentNotes || "",
-                  lesson_preparation_id: params.lessonPreparationId ?? null,
-                  student_ids: params.studentIds,
-                  updated_at: new Date().toISOString(),
-                }
-              : e
-          )
+          prev.map((e) => (e.id === id ? updated : e))
         );
+        await syncPlannerLogsForEvent(updated, lessonPreparations);
         setSaveStatus("saved");
         triggerAutoSave();
         return;
@@ -897,25 +1001,28 @@ export function AppProvider({
       setPlannerEvents((prev) =>
         prev.map((e) => (e.id === id ? updated : e))
       );
+      await syncPlannerLogsForEvent(updated, lessonPreparations);
       setSaveStatus("saved");
       triggerAutoSave();
     },
-    [previewMode, triggerAutoSave]
+    [previewMode, session.school.id, lessonPreparations, plannerEvents, syncPlannerLogsForEvent, triggerAutoSave]
   );
 
   const deletePlannerEvent = useCallback(async (id: string) => {
     setSaveStatus("saving");
     if (previewMode) {
       setPlannerEvents((prev) => prev.filter((e) => e.id !== id));
+      await removePlannerLogsForEvent(id);
       setSaveStatus("saved");
       triggerAutoSave();
       return;
     }
     await deletePlannerEventFromDb(id);
     setPlannerEvents((prev) => prev.filter((e) => e.id !== id));
+    await refetchStudentsSilent();
     setSaveStatus("saved");
     triggerAutoSave();
-  }, [previewMode, triggerAutoSave]);
+  }, [previewMode, removePlannerLogsForEvent, refetchStudentsSilent, triggerAutoSave]);
 
   useEffect(() => {
     if (previewMode) return;
@@ -923,39 +1030,34 @@ export function AppProvider({
     const supabase = createClient();
     const schoolId = session.school.id;
 
-    const studentsChannel = supabase
-      .channel(`students:${schoolId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "students", filter: `school_id=eq.${schoolId}` },
-        () => {
-          fetchStudents();
-        }
-      )
-      .subscribe();
+    const scheduleStudentsRefetch = () => {
+      if (realtimeDebounce.current) clearTimeout(realtimeDebounce.current);
+      realtimeDebounce.current = setTimeout(() => {
+        void refetchStudentsSilent();
+      }, 300);
+    };
 
-    const logsChannel = supabase
-      .channel(`logs:${schoolId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "logs" }, () => {
-        fetchStudents();
-      })
-      .subscribe();
+    const schedulePlannerRefetch = () => {
+      if (realtimeDebounce.current) clearTimeout(realtimeDebounce.current);
+      realtimeDebounce.current = setTimeout(() => {
+        void refetchPlannerDataSilent();
+      }, 300);
+    };
 
-    const competenciesChannel = supabase
-      .channel(`competencies:${schoolId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "competencies" }, () => {
-        fetchStudents();
-      })
-      .subscribe();
-
-    realtimeChannels.current = [studentsChannel, logsChannel, competenciesChannel];
+    const subscriptions = subscribeToSchoolData(supabase, schoolId, {
+      onStudentsChange: scheduleStudentsRefetch,
+      onFichesChange: scheduleStudentsRefetch,
+      onLogsChange: scheduleStudentsRefetch,
+      onCompetenciesChange: scheduleStudentsRefetch,
+      onLessonPreparationsChange: schedulePlannerRefetch,
+      onPlannerEventsChange: schedulePlannerRefetch,
+    });
 
     return () => {
-      realtimeChannels.current.forEach((ch) => {
-        supabase.removeChannel(ch);
-      });
+      if (realtimeDebounce.current) clearTimeout(realtimeDebounce.current);
+      unsubscribeAll(subscriptions);
     };
-  }, [previewMode, session.school.id, fetchStudents]);
+  }, [previewMode, session.school.id, refetchStudentsSilent, refetchPlannerDataSilent]);
 
   const value: AppContextValue = {
     previewMode,
@@ -966,6 +1068,8 @@ export function AppProvider({
     loading,
     saveStatus,
     mainTab,
+    plannerOpen,
+    setPlannerOpen,
     onlyShowIopFocus,
     setMainTab,
     setOnlyShowIopFocus,

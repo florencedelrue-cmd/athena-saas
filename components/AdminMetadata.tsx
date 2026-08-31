@@ -2,23 +2,47 @@
 
 import { UserCheck } from "lucide-react";
 import { useApp } from "@/context/AppContext";
-import { useCallback, useEffect, useState } from "react";
+import { isUserEditing } from "@/lib/form-sync";
+import { useDebouncedSave } from "@/lib/use-debounced-save";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 export function AdminMetadata() {
-  const { activeStudent, updateStudent } = useApp();
+  const { activeStudent, activeStudentId, updateStudent } = useApp();
   const [name, setName] = useState("");
   const [coach, setCoach] = useState("");
   const [klass, setKlass] = useState("");
   const [year, setYear] = useState("");
 
   useEffect(() => {
+    if (isUserEditing()) return;
     if (activeStudent) {
       setName(activeStudent.name);
       setCoach(activeStudent.coach);
       setKlass(activeStudent.class);
       setYear(activeStudent.school_year);
     }
-  }, [activeStudent]);
+  }, [activeStudent, activeStudentId]);
+
+  const saveMetadata = useCallback(
+    (fields: { name: string; coach: string; class: string; school_year: string }) => {
+      if (!activeStudent) return;
+      const updates: Partial<Pick<typeof fields, "name" | "coach" | "class" | "school_year">> = {};
+      if (fields.name !== activeStudent.name) updates.name = fields.name;
+      if (fields.coach !== activeStudent.coach) updates.coach = fields.coach;
+      if (fields.class !== activeStudent.class) updates.class = fields.class;
+      if (fields.school_year !== activeStudent.school_year) updates.school_year = fields.school_year;
+      if (Object.keys(updates).length > 0) {
+        void updateStudent(updates);
+      }
+    },
+    [activeStudent, updateStudent]
+  );
+
+  const metadataDraft = useMemo(
+    () => ({ name, coach, class: klass, school_year: year }),
+    [name, coach, klass, year]
+  );
+  useDebouncedSave(metadataDraft, saveMetadata);
 
   const handleChange = useCallback(
     (field: "name" | "coach" | "class" | "school_year", value: string) => {
@@ -28,22 +52,6 @@ export function AdminMetadata() {
       if (field === "school_year") setYear(value);
     },
     []
-  );
-
-  const handleBlur = useCallback(
-    (field: "name" | "coach" | "class" | "school_year", value: string) => {
-      if (!activeStudent) return;
-      const updates: Record<string, string> = {};
-      if (field === "name" && value !== activeStudent.name) updates.name = value;
-      if (field === "coach" && value !== activeStudent.coach) updates.coach = value;
-      if (field === "class" && value !== activeStudent.class) updates.class = value;
-      if (field === "school_year" && value !== activeStudent.school_year)
-        updates.school_year = value;
-      if (Object.keys(updates).length > 0) {
-        updateStudent(updates);
-      }
-    },
-    [activeStudent, updateStudent]
   );
 
   if (!activeStudent) return null;
@@ -63,7 +71,6 @@ export function AdminMetadata() {
             type="text"
             value={name}
             onChange={(e) => handleChange("name", e.target.value)}
-            onBlur={(e) => handleBlur("name", e.target.value)}
             className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 md:py-2 text-sm text-slate-800 focus:border-athenaBlue focus:ring-1 focus:ring-athenaBlue outline-none"
           />
         </div>
@@ -75,7 +82,6 @@ export function AdminMetadata() {
             type="text"
             value={coach}
             onChange={(e) => handleChange("coach", e.target.value)}
-            onBlur={(e) => handleBlur("coach", e.target.value)}
             className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 md:py-2 text-sm text-slate-800 focus:border-athenaBlue focus:ring-1 focus:ring-athenaBlue outline-none"
           />
         </div>
@@ -87,7 +93,6 @@ export function AdminMetadata() {
             type="text"
             value={klass}
             onChange={(e) => handleChange("class", e.target.value)}
-            onBlur={(e) => handleBlur("class", e.target.value)}
             className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 md:py-2 text-sm text-slate-800 focus:border-athenaBlue focus:ring-1 focus:ring-athenaBlue outline-none"
           />
         </div>
@@ -99,7 +104,6 @@ export function AdminMetadata() {
             type="text"
             value={year}
             onChange={(e) => handleChange("school_year", e.target.value)}
-            onBlur={(e) => handleBlur("school_year", e.target.value)}
             className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 md:py-2 text-sm text-slate-800 focus:border-athenaBlue focus:ring-1 focus:ring-athenaBlue outline-none"
           />
         </div>

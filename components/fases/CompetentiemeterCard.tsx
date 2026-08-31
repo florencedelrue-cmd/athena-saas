@@ -2,14 +2,47 @@
 
 import { Eye, EyeOff, Wrench, Compass, Users } from "lucide-react";
 import { useApp } from "@/context/AppContext";
-import { COMPETENCIES_DATA, SCORING_SCALE } from "@/lib/constants";
+import { COMPETENCIES_DATA, DEFAULT_COMPETENCY_SCORE, SCORING_SCALE } from "@/lib/constants";
+import { PERIOD_KEYS, PERIOD_LABELS, type PeriodKey } from "@/lib/competency-score";
+import { isUserEditing } from "@/lib/form-sync";
+import { useDebouncedSave } from "@/lib/use-debounced-save";
 import { useCallback, useEffect, useState } from "react";
 import type { CompetencyDomainKey, CompetencyScore, ScoreValue } from "@/types";
+
+function CompetencyNoteInput({
+  itemId,
+  initialNote,
+  onSave,
+}: {
+  itemId: string;
+  initialNote: string;
+  onSave: (itemId: string, note: string) => Promise<void>;
+}) {
+  const [note, setNote] = useState(initialNote);
+
+  useEffect(() => {
+    if (isUserEditing()) return;
+    setNote(initialNote);
+  }, [initialNote, itemId]);
+
+  useDebouncedSave(note, (value) => onSave(itemId, value));
+
+  return (
+    <input
+      type="text"
+      value={note}
+      onChange={(e) => setNote(e.target.value)}
+      placeholder="Specifieke opmerkingen, bewijzen of werkpleknota's..."
+      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 md:py-1.5 text-xs text-slate-700 outline-none focus:border-athenaBlue"
+    />
+  );
+}
 
 export function CompetentiemeterCard() {
   const {
     onlyShowIopFocus,
     setOnlyShowIopFocus,
+    activeStudentId,
     getAnalyse,
     getAssessmentsMap,
     setCompScore,
@@ -19,21 +52,22 @@ export function CompetentiemeterCard() {
   const [iopFocus, setIopFocus] = useState<string[]>([]);
 
   useEffect(() => {
+    if (isUserEditing()) return;
     setAssessments(getAssessmentsMap());
     setIopFocus(getAnalyse().iopFocus);
-  }, [getAssessmentsMap, getAnalyse]);
+  }, [getAssessmentsMap, getAnalyse, activeStudentId]);
 
   const focusSet = new Set(iopFocus);
 
   const handleScore = useCallback(
-    async (itemId: string, milestone: "m1" | "m2" | "m3", value: ScoreValue) => {
-      await setCompScore(itemId, milestone, value);
+    async (itemId: string, period: PeriodKey, value: ScoreValue) => {
+      await setCompScore(itemId, period, value);
       setAssessments(getAssessmentsMap());
     },
     [setCompScore, getAssessmentsMap]
   );
 
-  const handleNote = useCallback(
+  const handleNoteSave = useCallback(
     async (itemId: string, note: string) => {
       await setCompNote(itemId, note);
     },
@@ -113,12 +147,7 @@ export function CompetentiemeterCard() {
               <div className="p-4 md:p-6 space-y-4">
                 {filteredItems.map((item) => {
                   const isIopFocus = focusSet.has(item.id);
-                  const score = assessments[item.id] || {
-                    m1: "nvt" as const,
-                    m2: "nvt" as const,
-                    m3: "nvt" as const,
-                    note: "",
-                  };
+                  const score = assessments[item.id] || { ...DEFAULT_COMPETENCY_SCORE };
 
                   return (
                     <div
@@ -156,28 +185,23 @@ export function CompetentiemeterCard() {
                         )}
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2 border-t border-slate-100">
-                        {(["m1", "m2", "m3"] as const).map((milestone) => (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 pt-2 border-t border-slate-100">
+                        {PERIOD_KEYS.map((period) => (
                           <div
-                            key={milestone}
+                            key={period}
                             className="flex items-center justify-between text-xs p-1 bg-white/70 rounded-lg border border-slate-100"
                           >
                             <span className="text-slate-400 font-semibold">
-                              {milestone === "m1"
-                                ? "M1: Start"
-                                : milestone === "m2"
-                                ? "M2: Midden"
-                                : "M3: Eind"}
-                              :
+                              {PERIOD_LABELS[period]}:
                             </span>
                             <div className="flex space-x-1">
                               {SCORING_SCALE.map((scale) => {
-                                const isSelected = score[milestone] === scale.key;
+                                const isSelected = score[period] === scale.key;
                                 return (
                                   <button
                                     key={scale.key}
                                     onClick={() =>
-                                      handleScore(item.id, milestone, scale.key)
+                                      handleScore(item.id, period, scale.key)
                                     }
                                     title={scale.label}
                                     className={`w-7 h-7 md:w-6 md:h-6 rounded-full flex items-center justify-center text-[10px] font-bold border transition ${
@@ -195,12 +219,10 @@ export function CompetentiemeterCard() {
                         ))}
                       </div>
 
-                      <input
-                        type="text"
-                        defaultValue={score.note || ""}
-                        onBlur={(e) => handleNote(item.id, e.target.value)}
-                        placeholder="Specifieke opmerkingen, bewijzen of werkpleknota's..."
-                        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 md:py-1.5 text-xs text-slate-700 outline-none focus:border-athenaBlue"
+                      <CompetencyNoteInput
+                        itemId={item.id}
+                        initialNote={score.note || ""}
+                        onSave={handleNoteSave}
                       />
                     </div>
                   );

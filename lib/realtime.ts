@@ -8,69 +8,66 @@ interface RealtimeSubscription {
 }
 
 /**
- * Prepared structure for Supabase Realtime subscriptions.
- * Enable realtime on tables in Supabase dashboard before using.
+ * Supabase Realtime voor gedeelde schooldata.
+ * Run supabase/migrations/005_enable_realtime.sql in Supabase eerst.
  */
 export function subscribeToSchoolData(
   supabase: SupabaseClient<Database>,
   schoolId: string,
   callbacks: {
     onStudentsChange?: RealtimeCallback;
+    onFichesChange?: RealtimeCallback;
     onLogsChange?: RealtimeCallback;
     onCompetenciesChange?: RealtimeCallback;
+    onLessonPreparationsChange?: RealtimeCallback;
+    onPlannerEventsChange?: RealtimeCallback;
   }
 ): RealtimeSubscription[] {
   const subscriptions: RealtimeSubscription[] = [];
 
-  if (callbacks.onStudentsChange) {
+  const addChannel = (
+    name: string,
+    table: string,
+    callback: RealtimeCallback | undefined,
+    filter?: string
+  ) => {
+    if (!callback) return;
+
+    const config: {
+      event: "*";
+      schema: "public";
+      table: string;
+      filter?: string;
+    } = { event: "*", schema: "public", table };
+
+    if (filter) config.filter = filter;
+
     const channel = supabase
-      .channel(`realtime:students:${schoolId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "students",
-          filter: `school_id=eq.${schoolId}`,
-        },
-        () => callbacks.onStudentsChange?.()
-      )
+      .channel(`realtime:${name}:${schoolId}`)
+      .on("postgres_changes", config, () => callback())
       .subscribe();
 
     subscriptions.push({
       unsubscribe: () => supabase.removeChannel(channel),
     });
-  }
+  };
 
-  if (callbacks.onLogsChange) {
-    const channel = supabase
-      .channel(`realtime:logs:${schoolId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "logs" },
-        () => callbacks.onLogsChange?.()
-      )
-      .subscribe();
-
-    subscriptions.push({
-      unsubscribe: () => supabase.removeChannel(channel),
-    });
-  }
-
-  if (callbacks.onCompetenciesChange) {
-    const channel = supabase
-      .channel(`realtime:competencies:${schoolId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "competencies" },
-        () => callbacks.onCompetenciesChange?.()
-      )
-      .subscribe();
-
-    subscriptions.push({
-      unsubscribe: () => supabase.removeChannel(channel),
-    });
-  }
+  addChannel("students", "students", callbacks.onStudentsChange, `school_id=eq.${schoolId}`);
+  addChannel("fiches", "fiches", callbacks.onFichesChange);
+  addChannel("logs", "logs", callbacks.onLogsChange);
+  addChannel("competencies", "competencies", callbacks.onCompetenciesChange);
+  addChannel(
+    "lesson_preparations",
+    "lesson_preparations",
+    callbacks.onLessonPreparationsChange,
+    `school_id=eq.${schoolId}`
+  );
+  addChannel(
+    "planner_events",
+    "planner_events",
+    callbacks.onPlannerEventsChange,
+    `school_id=eq.${schoolId}`
+  );
 
   return subscriptions;
 }

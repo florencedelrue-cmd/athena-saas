@@ -6,64 +6,92 @@ import { useApp } from "@/context/AppContext";
 import type { MainTab } from "@/types";
 
 export function Header() {
-  const { mainTab, setMainTab, saveStatus, forceSync, session, previewMode } = useApp();
+  const {
+    mainTab,
+    setMainTab,
+    plannerOpen,
+    setPlannerOpen,
+    saveStatus,
+    forceSync,
+    session,
+    previewMode,
+  } = useApp();
 
-  const statusText = {
-    idle: "⚡ Live opslaan actief",
-    detected: "⏳ Wijziging gedetecteerd...",
-    saving: "💾 Bezig met opslaan...",
-    saved: "⚡ Volledig bijgewerkt",
-    error: "⚠️ Fout bij opslaan",
-  }[saveStatus];
+  const statusText = previewMode
+    ? {
+        idle: "💾 Lokaal opgeslagen (deze browser)",
+        detected: "⏳ Wijziging gedetecteerd...",
+        saving: "💾 Bezig met opslaan...",
+        saved: "💾 Lokaal opgeslagen (deze browser)",
+        error: "⚠️ Fout bij opslaan",
+      }[saveStatus]
+    : {
+        idle: "⚡ Live sync actief",
+        detected: "⏳ Wijziging gedetecteerd...",
+        saving: "💾 Bezig met opslaan...",
+        saved: "⚡ Volledig bijgewerkt",
+        error: "⚠️ Fout bij opslaan",
+      }[saveStatus];
 
   const switchTab = (tab: MainTab) => {
+    setPlannerOpen(false);
     setMainTab(tab);
+  };
+
+  const togglePlanner = () => {
+    setPlannerOpen(!plannerOpen);
   };
 
   return (
     <header className="bg-white border-b border-slate-200 sticky top-0 z-40 px-4 md:px-6 py-4 shadow-sm">
-      <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div className="flex items-center space-x-3">
+      <div className="max-w-7xl mx-auto flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="flex flex-col items-start shrink-0">
           <AthenaLogo priority />
-          <span className="bg-athenaPink text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded hidden sm:inline">
+          <span className="text-[10px] font-extrabold text-athenaPink mt-1 leading-none">
             TOCI 2.0
           </span>
         </div>
 
-        <nav className="flex bg-slate-100 p-1 rounded-xl overflow-x-auto">
+        <div className="flex flex-wrap items-center gap-3 flex-1 lg:justify-center">
           <button
-            onClick={() => switchTab("gesprek")}
-            className={`tab-btn px-4 md:px-6 py-3 md:py-2.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
-              mainTab === "gesprek"
-                ? "bg-white text-athenaBlue shadow-sm"
-                : "text-slate-600 hover:text-slate-900"
+            type="button"
+            onClick={togglePlanner}
+            className={`text-xs font-extrabold px-4 py-2.5 rounded-lg transition whitespace-nowrap shadow-sm ${
+              plannerOpen
+                ? "bg-athenaBlue text-white shadow-md ring-2 ring-athenaBlue/30"
+                : "bg-athenaGreen text-white hover:bg-[#0b7a71] shadow-md ring-2 ring-athenaGreen/25"
             }`}
           >
-            Gespreksfiche
+            PLANNER LKR
           </button>
-          <button
-            onClick={() => switchTab("volgsysteem")}
-            className={`tab-btn px-4 md:px-6 py-3 md:py-2.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
-              mainTab === "volgsysteem"
-                ? "bg-white text-athenaBlue shadow-sm"
-                : "text-slate-600 hover:text-slate-900"
-            }`}
-          >
-            Cyclus Tracker
-          </button>
-          <button
-            onClick={() => switchTab("planner")}
-            className={`tab-btn px-4 md:px-6 py-3 md:py-2.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
-              mainTab === "planner"
-                ? "bg-white text-athenaBlue shadow-sm"
-                : "text-slate-600 hover:text-slate-900"
-            }`}
-          >
-            Planner
-          </button>
-        </nav>
 
-        <div className="flex items-center space-x-3 justify-end">
+          {!plannerOpen && (
+            <nav className="flex bg-slate-100 p-1 rounded-xl overflow-x-auto">
+              <button
+                onClick={() => switchTab("gesprek")}
+                className={`tab-btn px-4 md:px-6 py-2.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+                  mainTab === "gesprek"
+                    ? "bg-white text-athenaBlue shadow-sm"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                Gespreksfiche
+              </button>
+              <button
+                onClick={() => switchTab("volgsysteem")}
+                className={`tab-btn px-4 md:px-6 py-2.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+                  mainTab === "volgsysteem"
+                    ? "bg-white text-athenaBlue shadow-sm"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                Feedcyclus
+              </button>
+            </nav>
+          )}
+        </div>
+
+        <div className="flex items-center space-x-3 justify-end shrink-0">
           <div className="hidden lg:block text-right">
             <p className="text-[10px] text-slate-400 font-semibold uppercase">{session.school.name}</p>
             {!previewMode && (

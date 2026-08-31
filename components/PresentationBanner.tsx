@@ -15,20 +15,28 @@ export function PresentationBanner() {
           <Sparkles className="w-5 h-5 flex-shrink-0 text-athenaPink" />
           <div className="min-w-0">
             <p className="text-sm font-bold truncate">
-              Athena TOCI 2.0 — Duaal Leren Platform
+              Beheerders-preview — geen login vereist
             </p>
             <p className="text-[11px] text-white/80 hidden sm:block">
-              Demo — direct toegang, geen login · Senne Devos & Lisa Peeters
+              Demo-data in deze browser · Senne Devos & Lisa Peeters · niet gedeeld met leerkrachten
             </p>
           </div>
         </div>
-        <button
-          onClick={() => setVisible(false)}
-          className="p-2 hover:bg-white/10 rounded-lg transition flex-shrink-0"
-          aria-label="Sluiten"
-        >
-          <X className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <a
+            href="/api/admin/exit-preview"
+            className="text-[11px] font-semibold bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-lg transition"
+          >
+            Preview afsluiten
+          </a>
+          <button
+            onClick={() => setVisible(false)}
+            className="p-2 hover:bg-white/10 rounded-lg transition"
+            aria-label="Sluiten"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
       </div>
     </div>
   );

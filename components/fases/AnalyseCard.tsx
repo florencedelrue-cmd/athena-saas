@@ -3,25 +3,29 @@
 import { ClipboardList, Target } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { COMPETENCIES_DATA } from "@/lib/constants";
-import { useCallback, useEffect, useState } from "react";
+import { isUserEditing } from "@/lib/form-sync";
+import { useDebouncedSave } from "@/lib/use-debounced-save";
+import { useEffect, useMemo, useState } from "react";
 import type { CompetencyDomainKey } from "@/types";
 
 export function AnalyseCard() {
-  const { getAnalyse, saveAnalyseNotes, toggleIopFocus } = useApp();
+  const { activeStudentId, getAnalyse, saveAnalyseNotes, toggleIopFocus } = useApp();
   const [klassenraad, setKlassenraad] = useState("");
   const [gesprek, setGesprek] = useState("");
   const [iopFocus, setIopFocus] = useState<string[]>([]);
 
   useEffect(() => {
+    if (isUserEditing()) return;
     const analyse = getAnalyse();
     setKlassenraad(analyse.klassenraad);
     setGesprek(analyse.gesprek);
     setIopFocus(analyse.iopFocus);
-  }, [getAnalyse]);
+  }, [getAnalyse, activeStudentId]);
 
-  const handleNotesBlur = useCallback(() => {
-    saveAnalyseNotes({ klassenraad, gesprek });
-  }, [klassenraad, gesprek, saveAnalyseNotes]);
+  const analyseDraft = useMemo(() => ({ klassenraad, gesprek }), [klassenraad, gesprek]);
+  useDebouncedSave(analyseDraft, (data) =>
+    saveAnalyseNotes({ klassenraad: data.klassenraad, gesprek: data.gesprek })
+  );
 
   const handleToggle = async (itemId: string) => {
     await toggleIopFocus(itemId);
@@ -44,7 +48,6 @@ export function AnalyseCard() {
             <textarea
               value={klassenraad}
               onChange={(e) => setKlassenraad(e.target.value)}
-              onBlur={handleNotesBlur}
               rows={4}
               placeholder="Wat kwam er naar voren uit de klassenraad? Welke adviezen zijn er gegeven?..."
               className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm text-slate-800 outline-none focus:border-athenaBlue focus:ring-1 focus:ring-athenaBlue"
@@ -57,7 +60,6 @@ export function AnalyseCard() {
             <textarea
               value={gesprek}
               onChange={(e) => setGesprek(e.target.value)}
-              onBlur={handleNotesBlur}
               rows={4}
               placeholder="Wat gaf de leerling zelf aan tijdens het gesprek? Wat zijn de verwachtingen?..."
               className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm text-slate-800 outline-none focus:border-athenaBlue focus:ring-1 focus:ring-athenaBlue"

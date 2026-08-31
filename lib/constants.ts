@@ -122,9 +122,10 @@ export const ALL_COMPETENCY_KEYS: string[] = Object.values(COMPETENCIES_DATA).fl
 );
 
 export const DEFAULT_COMPETENCY_SCORE = {
-  m1: "nvt" as const,
-  m2: "nvt" as const,
-  m3: "nvt" as const,
+  per1: "nvt" as const,
+  per2: "nvt" as const,
+  per3: "nvt" as const,
+  per4: "nvt" as const,
   note: "",
 };
 

@@ -4,6 +4,7 @@ import {
   ALL_COMPETENCY_KEYS,
   DEFAULT_COMPETENCY_SCORE,
 } from "@/lib/constants";
+import { normalizeCompetencyScore } from "@/lib/competency-score";
 import type {
   AnalyseNotes,
   Competency,
@@ -11,6 +12,7 @@ import type {
   DoorstroomNotes,
   Fiche,
   Log,
+  PlannerEvent,
   ScreeningNotes,
   Student,
   StudentWithData,
@@ -54,7 +56,7 @@ export function getAssessments(competencies: Competency[]): Record<string, Compe
     assessments[key] = { ...DEFAULT_COMPETENCY_SCORE };
   });
   competencies.forEach((comp) => {
-    assessments[comp.competency_key] = comp.score;
+    assessments[comp.competency_key] = normalizeCompetencyScore(comp.score);
   });
   return assessments;
 }
@@ -225,6 +227,7 @@ export async function updateCompetencyInDb(
   score: CompetencyScore
 ): Promise<Competency> {
   const supabase = createClient();
+  const normalizedScore = normalizeCompetencyScore(score);
 
   const { data: existing } = await supabase
     .from("competencies")
@@ -236,7 +239,7 @@ export async function updateCompetencyInDb(
   if (existing) {
     const { data: updated, error } = await supabase
       .from("competencies")
-      .update({ score })
+      .update({ score: normalizedScore })
       .eq("id", existing.id)
       .select()
       .single();
@@ -247,7 +250,7 @@ export async function updateCompetencyInDb(
 
   const { data: created, error } = await supabase
     .from("competencies")
-    .insert({ student_id: studentId, competency_key: competencyKey, score })
+    .insert({ student_id: studentId, competency_key: competencyKey, score: normalizedScore })
     .select()
     .single();
 
@@ -284,6 +287,43 @@ export async function deleteLogFromDb(logId: string): Promise<void> {
   const supabase = createClient();
 
   const { error } = await supabase.from("logs").delete().eq("id", logId);
+  if (error) throw error;
+}
+
+export async function syncPlannerEventLogsInDb(
+  event: PlannerEvent,
+  competencies: string[]
+): Promise<void> {
+  const supabase = createClient();
+  const date = formatDateToDisplay(event.event_date);
+  const content =
+    event.assignment_notes?.trim() ||
+    "Aanwezig op geplande activiteit (PLANNER LKR).";
+
+  const { error: deleteError } = await supabase
+    .from("logs")
+    .delete()
+    .eq("planner_event_id", event.id);
+  if (deleteError) throw deleteError;
+
+  if (event.student_ids.length === 0) return;
+
+  const rows = event.student_ids.map((studentId) => ({
+    student_id: studentId,
+    date,
+    title: event.assignment_title,
+    content,
+    competencies_used: competencies,
+    planner_event_id: event.id,
+  }));
+
+  const { error: insertError } = await supabase.from("logs").insert(rows);
+  if (insertError) throw insertError;
+}
+
+export async function deletePlannerEventLogsFromDb(eventId: string): Promise<void> {
+  const supabase = createClient();
+  const { error } = await supabase.from("logs").delete().eq("planner_event_id", eventId);
   if (error) throw error;
 }
 

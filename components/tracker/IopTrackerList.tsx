@@ -1,7 +1,8 @@
 "use client";
 
 import { useApp } from "@/context/AppContext";
-import { COMPETENCIES_DATA, SCORE_COLORS } from "@/lib/constants";
+import { COMPETENCIES_DATA, DEFAULT_COMPETENCY_SCORE, SCORE_COLORS } from "@/lib/constants";
+import { PERIOD_KEYS, PERIOD_LABELS } from "@/lib/competency-score";
 import { EmptyState } from "@/components/ui/Loading";
 import type { CompetencyDomainKey } from "@/types";
 
@@ -39,12 +40,7 @@ export function IopTrackerList() {
           );
           if (!compInfo) return null;
 
-          const score = assessments[itemId] || {
-            m1: "nvt" as const,
-            m2: "nvt" as const,
-            m3: "nvt" as const,
-            note: "",
-          };
+          const score = assessments[itemId] || { ...DEFAULT_COMPETENCY_SCORE };
 
           return (
             <div
@@ -61,14 +57,14 @@ export function IopTrackerList() {
               </div>
               <div className="flex items-center space-x-2 overflow-x-auto">
                 <div className="flex space-x-1">
-                  {(["m1", "m2", "m3"] as const).map((m) => (
+                  {PERIOD_KEYS.map((period) => (
                     <span
-                      key={m}
+                      key={period}
                       className={`text-[9px] px-2 py-1 rounded-md font-bold uppercase whitespace-nowrap ${
-                        SCORE_COLORS[score[m]]
+                        SCORE_COLORS[score[period]]
                       }`}
                     >
-                      {m.toUpperCase()}: {score[m].toUpperCase()}
+                      {PERIOD_LABELS[period]}: {score[period].toUpperCase()}
                     </span>
                   ))}
                 </div>
