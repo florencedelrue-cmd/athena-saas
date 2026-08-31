@@ -42,9 +42,35 @@ export default async function DashboardLayout({
 
   if (!isAuthRequired()) {
     const guestSession = await getUser();
-    if (!guestSession) {
-      return renderPreviewProvider(children);
+    if (guestSession) {
+      const students = await ensureDemoStudents(
+        guestSession.school.id,
+        guestSession.user.id
+      );
+
+      let plannerData: {
+        lessonPreparations: LessonPreparation[];
+        plannerEvents: PlannerEvent[];
+      } = { lessonPreparations: [], plannerEvents: [] };
+      try {
+        plannerData = await fetchPlannerDataForSchoolServer(guestSession.school.id);
+      } catch {
+        // Planner-tabellen nog niet gemigreerd
+      }
+
+      return (
+        <AppProvider
+          session={guestSession}
+          initialStudents={students}
+          initialLessonPreparations={plannerData.lessonPreparations}
+          initialPlannerEvents={plannerData.plannerEvents}
+        >
+          {children}
+        </AppProvider>
+      );
     }
+
+    return renderPreviewProvider(children);
   }
 
   const session = await requireAuth();

@@ -1,18 +1,26 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { isPreviewMode } from "@/lib/preview-mode";
 import { hasAdminPreviewRequest } from "@/lib/admin-preview-edge";
 import { isAuthRequired } from "@/lib/open-access";
+import { isPreviewMode } from "@/lib/preview-mode";
+
+function hasSupabaseConfig(): boolean {
+  return Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL &&
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  );
+}
 
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
+  const isLoginRoute = pathname.startsWith("/login");
+  const isSignupRoute = pathname.startsWith("/signup");
+  const isAuthCallback = pathname.startsWith("/auth/callback");
+  const isOpenSession = pathname.startsWith("/api/auth/open-session");
+  const isApiRoute = pathname.startsWith("/api");
 
-  if (
-    isPreviewMode() ||
-    (await hasAdminPreviewRequest(request)) ||
-    !isAuthRequired()
-  ) {
-    if (pathname.startsWith("/login") || pathname.startsWith("/signup")) {
+  if (isPreviewMode() || (await hasAdminPreviewRequest(request))) {
+    if (isLoginRoute || isSignupRoute) {
       const url = request.nextUrl.clone();
       url.pathname = "/";
       return NextResponse.redirect(url);
@@ -20,7 +28,12 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next({ request });
   }
 
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+  if (!hasSupabaseConfig()) {
+    if (!isAuthRequired() && (isLoginRoute || isSignupRoute)) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/";
+      return NextResponse.redirect(url);
+    }
     return NextResponse.next({ request });
   }
 
@@ -51,11 +64,6 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const isLoginRoute = pathname.startsWith("/login");
-  const isSignupRoute = pathname.startsWith("/signup");
-  const isAuthCallback = pathname.startsWith("/auth/callback");
-  const isApiRoute = pathname.startsWith("/api");
-
   if (isSignupRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
@@ -63,6 +71,25 @@ export async function middleware(request: NextRequest) {
   }
 
   if (isApiRoute) {
+    return supabaseResponse;
+  }
+
+  if (!isAuthRequired()) {
+    if (isLoginRoute || isSignupRoute) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/";
+      return NextResponse.redirect(url);
+    }
+
+    if (!user && !isOpenSession && !isAuthCallback) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/api/auth/open-session";
+      if (pathname !== "/") {
+        url.searchParams.set("next", pathname);
+      }
+      return NextResponse.redirect(url);
+    }
+
     return supabaseResponse;
   }
 

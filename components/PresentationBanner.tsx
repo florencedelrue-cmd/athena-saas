@@ -15,10 +15,10 @@ export function PresentationBanner() {
           <Sparkles className="w-5 h-5 flex-shrink-0 text-athenaPink" />
           <div className="min-w-0">
             <p className="text-sm font-bold truncate">
-              Open toegang — geen login vereist
+              Open toegang — lokale preview
             </p>
             <p className="text-[11px] text-white/80 hidden sm:block">
-              Wijzigingen worden lokaal opgeslagen in deze browser · start met Senne Devos & Lisa Peeters
+              Supabase niet bereikbaar · wijzigingen alleen in deze browser
             </p>
           </div>
         </div>
