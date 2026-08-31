@@ -2,11 +2,16 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { isPreviewMode } from "@/lib/preview-mode";
 import { hasAdminPreviewRequest } from "@/lib/admin-preview-edge";
+import { isAuthRequired } from "@/lib/open-access";
 
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
-  if (isPreviewMode() || (await hasAdminPreviewRequest(request))) {
+  if (
+    isPreviewMode() ||
+    (await hasAdminPreviewRequest(request)) ||
+    !isAuthRequired()
+  ) {
     if (pathname.startsWith("/login") || pathname.startsWith("/signup")) {
       const url = request.nextUrl.clone();
       url.pathname = "/";

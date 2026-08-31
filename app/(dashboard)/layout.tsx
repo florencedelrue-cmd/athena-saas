@@ -1,4 +1,5 @@
-import { requireAuth } from "@/lib/auth";
+import { getUser, requireAuth } from "@/lib/auth";
+import { isAuthRequired } from "@/lib/open-access";
 import { ensureDemoStudents } from "@/lib/db-server";
 import { fetchPlannerDataForSchoolServer } from "@/lib/db-planner-server";
 import {
@@ -37,6 +38,13 @@ export default async function DashboardLayout({
 
   if (isPreviewMode() || adminPreview) {
     return renderPreviewProvider(children);
+  }
+
+  if (!isAuthRequired()) {
+    const guestSession = await getUser();
+    if (!guestSession) {
+      return renderPreviewProvider(children);
+    }
   }
 
   const session = await requireAuth();

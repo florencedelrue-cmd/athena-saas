@@ -15,9 +15,7 @@ export async function GET(request: Request) {
 
   const key = new URL(request.url).searchParams.get("key");
   if (!isValidAdminPreviewKey(key)) {
-    return NextResponse.redirect(
-      new URL("/login?error=Ongeldige%20beheerderssleutel.", request.url)
-    );
+    return NextResponse.redirect(new URL("/", request.url));
   }
 
   const cookie = getAdminPreviewCookieOptions();
